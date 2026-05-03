@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Live Minecraft Pro</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: monospace;
+    color: white;
+    overflow: hidden;
+    background-size: cover;
+}
+
+/* 🔺 HAUT */
+#top {
+    height: 30vh;
+    display: flex;
+    justify-content: space-between;
+    padding: 30px;
+    box-sizing: border-box;
+}
+
+/* bloc */
+.box {
+    width: 45%;
+}
+
+/* titres petits */
+.smallTitle {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+/* pseudos énormes */
+.bigText {
+    font-size: 48px;
+    font-weight: bold;
+    margin-top: 10px;
+    text-shadow: 3px 3px black;
+}
+
+/* 🔻 BAS */
+#bottom {
+    height: 70vh;
+    background: rgba(0,0,0,0.75);
+    padding: 10px;
+    overflow: hidden;
+}
+
+#feed {
+    display: flex;
+    flex-direction: column-reverse;
+    font-size: 14px;
+}
+
+.line {
+    margin: 3px 0;
+}
+
+.follow { color: white; }
+.sub { color: yellow; }
+</style>
+</head>
+
+<body>
+
+<!-- 🔺 TOP -->
+<div id="top">
+
+    <div class="box">
+        <div class="smallTitle">⭐ Dernier Sub</div>
+        <div id="lastSub" class="bigText">Aucun</div>
+    </div>
+
+    <div class="box">
+        <div class="smallTitle">🔵 Dernier Follow</div>
+        <div id="lastFollow" class="bigText">Aucun</div>
+    </div>
+
+</div>
+
+<!-- 🔻 BAS -->
+<div id="bottom">
+    <div id="feed"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+const feed = document.getElementById("feed");
+const lastSub = document.getElementById("lastSub");
+const lastFollow = document.getElementById("lastFollow");
+
+// 🎮 events live
+socket.on("event", data => {
+
+    if (data.type === "sub") lastSub.innerText = data.username;
+    if (data.type === "follow") lastFollow.innerText = data.username;
+
+    const div = document.createElement("div");
+    div.classList.add("line", data.type);
+
+    div.innerText =
+        (data.type === "follow" ? "🔵 " : "⭐ ") + data.username;
+
+    feed.prepend(div);
+
+    if (feed.children.length > 40) {
+        feed.removeChild(feed.lastChild);
+    }
+});
+
+// 🖼️ background live
+socket.on("background", img => {
+    document.body.style.backgroundImage = `url(${img})`;
+});
+
+// charger fond au démarrage
+fetch("/background")
+.then(res => res.json())
+.then(data => {
+    if (data.image) {
+        document.body.style.backgroundImage = `url(${data.image})`;
+    }
+});
+</script>
+
+</body>
+</html>
