@@ -1,8 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
-const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -11,19 +9,39 @@ const io = new Server(server);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
-let background = "";
+// 🖼️ fond actuel
+let background = "/image.jpg";
+
+// 💾 derniers pseudos
+let latestSub = "Aucun";
+let latestFollow = "Aucun";
 
 // 📌 events live
 app.post("/event", (req, res) => {
+
     const { type, username } = req.body;
 
-    io.emit("event", { type, username });
+    // sauvegarde pseudo
+    if (type === "sub") {
+        latestSub = username;
+    }
+
+    if (type === "follow") {
+        latestFollow = username;
+    }
+
+    // envoyer au site
+    io.emit("event", {
+        type,
+        username
+    });
 
     res.sendStatus(200);
 });
 
-// 🖼️ upload image background (base64)
+// 🖼️ upload image background
 app.post("/background", (req, res) => {
+
     const { image } = req.body;
 
     background = image;
@@ -35,9 +53,27 @@ app.post("/background", (req, res) => {
 
 // 📤 envoyer background au client
 app.get("/background", (req, res) => {
-    res.json({ image: background });
+
+    res.json({
+        image: background
+    });
+
 });
 
-server.listen(3000, () => {
-    console.log("Serveur OK : http://localhost:3000");
+// 📤 envoyer derniers pseudos
+app.get("/latest", (req, res) => {
+
+    res.json({
+        sub: latestSub,
+        follow: latestFollow
+    });
+
+});
+
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+
+    console.log("Serveur OK : http://localhost:" + PORT);
+
 });
