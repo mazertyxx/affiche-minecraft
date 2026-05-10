@@ -9,19 +9,22 @@ const io = new Server(server);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
-// 🖼️ fond actuel
+// 🖼️ fond
 let background = "/image.jpg";
 
 // 💾 derniers pseudos
 let latestSub = "Aucun";
 let latestFollow = "Aucun";
 
+// 📜 historique
+let history = [];
+
 // 📌 events live
 app.post("/event", (req, res) => {
 
     const { type, username } = req.body;
 
-    // sauvegarde pseudo
+    // sauvegarder derniers pseudos
     if (type === "sub") {
         latestSub = username;
     }
@@ -30,7 +33,18 @@ app.post("/event", (req, res) => {
         latestFollow = username;
     }
 
-    // envoyer au site
+    // ajouter historique
+    history.unshift({
+        type,
+        username
+    });
+
+    // max 40 lignes
+    if (history.length > 40) {
+        history.pop();
+    }
+
+    // envoyer aux clients
     io.emit("event", {
         type,
         username
@@ -39,7 +53,7 @@ app.post("/event", (req, res) => {
     res.sendStatus(200);
 });
 
-// 🖼️ upload image background
+// 🖼️ changer fond
 app.post("/background", (req, res) => {
 
     const { image } = req.body;
@@ -51,7 +65,7 @@ app.post("/background", (req, res) => {
     res.sendStatus(200);
 });
 
-// 📤 envoyer background au client
+// 📤 envoyer fond
 app.get("/background", (req, res) => {
 
     res.json({
@@ -67,6 +81,13 @@ app.get("/latest", (req, res) => {
         sub: latestSub,
         follow: latestFollow
     });
+
+});
+
+// 📤 envoyer historique
+app.get("/history", (req, res) => {
+
+    res.json(history);
 
 });
 
