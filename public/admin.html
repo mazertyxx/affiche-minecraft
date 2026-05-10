@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
 <meta charset="UTF-8">
 <title>Admin Overlay</title>
@@ -17,6 +18,20 @@ input, button {
     margin: 10px;
     padding: 10px;
 }
+
+.line {
+    margin: 5px;
+    padding: 10px;
+    background: #222;
+}
+
+.deleteBtn {
+    margin-left: 10px;
+    background: red;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
 </style>
 </head>
 
@@ -24,47 +39,95 @@ input, button {
 
 <h1>⚙️ Admin Overlay</h1>
 
-<!-- FOLLOW -->
 <h3>🔵 Follow</h3>
 <input id="follow" placeholder="Pseudo follow">
 <button onclick="send('follow')">Envoyer</button>
 
-<!-- SUB -->
 <h3>⭐ Sub</h3>
 <input id="sub" placeholder="Pseudo sub">
 <button onclick="send('sub')">Envoyer</button>
 
-<!-- 🖼️ BACKGROUND -->
-<h3>🖼️ Fond du site</h3>
+<h3>🖼️ Fond</h3>
 <input type="file" id="bgFile">
-<button onclick="uploadBg()">Uploader fond</button>
+<button onclick="uploadBg()">Uploader</button>
+
+<h2>📜 Historique</h2>
+<div id="history"></div>
+
+<script src="/socket.io/socket.io.js"></script>
 
 <script>
+const socket = io();
+
+const historyDiv = document.getElementById("history");
+
+// envoyer event
 function send(type) {
+
     let username = document.getElementById(type).value;
 
     fetch("/event", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, username })
     });
 }
 
-// 📤 upload image → base64
+// fond
 function uploadBg() {
+
     const file = document.getElementById("bgFile").files[0];
     const reader = new FileReader();
 
     reader.onload = function() {
+
         fetch("/background", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ image: reader.result })
         });
+
     };
 
     reader.readAsDataURL(file);
 }
+
+// supprimer
+function deleteEvent(index) {
+
+    fetch("/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index })
+    });
+
+}
+
+// render
+function render(data) {
+
+    historyDiv.innerHTML = "";
+
+    data.forEach((e, i) => {
+
+        const div = document.createElement("div");
+
+        div.className = "line";
+
+        div.innerHTML =
+            (e.type === "follow" ? "🔵 " : "⭐ ")
+            + e.username +
+            ` <button class="deleteBtn" onclick="deleteEvent(${i})">❌</button>`;
+
+        historyDiv.appendChild(div);
+    });
+}
+
+fetch("/history")
+.then(res => res.json())
+.then(render);
+
+socket.on("history", render);
 </script>
 
 </body>
