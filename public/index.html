@@ -12,7 +12,6 @@ body {
     color: white;
     overflow: hidden;
 
-    /* 🖼️ fond fixe */
     background-image: url('/image.jpg');
     background-size: cover;
     background-position: center;
@@ -20,7 +19,7 @@ body {
     background-attachment: fixed;
 }
 
-/* 🔺 HAUT */
+/* TOP */
 #top {
     height: 30vh;
     display: flex;
@@ -29,18 +28,15 @@ body {
     box-sizing: border-box;
 }
 
-/* bloc */
 .box {
     width: 45%;
 }
 
-/* titres petits */
 .smallTitle {
     font-size: 18px;
     opacity: 0.9;
 }
 
-/* pseudos énormes */
 .bigText {
     font-size: 48px;
     font-weight: bold;
@@ -48,7 +44,7 @@ body {
     text-shadow: 3px 3px black;
 }
 
-/* 🔻 BAS */
+/* BOTTOM */
 #bottom {
     height: 70vh;
     background: rgba(0,0,0,0.75);
@@ -56,29 +52,33 @@ body {
     overflow: hidden;
 }
 
+/* 📜 HISTORIQUE EN COLONNES */
 #feed {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
+    flex-wrap: wrap;
+
+    align-content: flex-start;
+
+    height: 100%;
+    max-height: calc(19 * 22px);
+
+    gap: 4px;
     font-size: 14px;
 }
 
 .line {
-    margin: 3px 0;
+    margin: 3px;
+    width: 220px;
 }
 
-.follow {
-    color: white;
-}
-
-.sub {
-    color: yellow;
-}
+.follow { color: white; }
+.sub { color: yellow; }
 </style>
 </head>
 
 <body>
 
-<!-- 🔺 TOP -->
 <div id="top">
 
     <div class="box">
@@ -93,7 +93,6 @@ body {
 
 </div>
 
-<!-- 🔻 BAS -->
 <div id="bottom">
     <div id="feed"></div>
 </div>
@@ -107,20 +106,33 @@ const feed = document.getElementById("feed");
 const lastSub = document.getElementById("lastSub");
 const lastFollow = document.getElementById("lastFollow");
 
-// 🔥 charger derniers pseudos sauvegardés
+// 🔥 derniers pseudos
 fetch("/latest")
 .then(res => res.json())
 .then(data => {
-
     lastSub.innerText = data.sub;
     lastFollow.innerText = data.follow;
+});
+
+// 📜 historique initial
+fetch("/history")
+.then(res => res.json())
+.then(renderHistory);
+
+// 🎮 event live
+socket.on("event", data => {
+
+    if (data.type === "sub") lastSub.innerText = data.username;
+    if (data.type === "follow") lastFollow.innerText = data.username;
 
 });
 
-// 📜 charger historique
-fetch("/history")
-.then(res => res.json())
-.then(data => {
+// 📜 update historique
+socket.on("history", renderHistory);
+
+function renderHistory(data) {
+
+    feed.innerHTML = "";
 
     data.forEach(event => {
 
@@ -133,60 +145,21 @@ fetch("/history")
             + event.username;
 
         feed.appendChild(div);
-
     });
-
-});
-    
-// 🎮 events live
-socket.on("event", data => {
-
-    // mettre à jour les gros pseudos
-    if (data.type === "sub") {
-        lastSub.innerText = data.username;
-    }
-
-    if (data.type === "follow") {
-        lastFollow.innerText = data.username;
-    }
-
-    // ajouter dans le feed
-    const div = document.createElement("div");
-
-    div.classList.add("line", data.type);
-
-    div.innerText =
-        (data.type === "follow" ? "🔵 " : "⭐ ")
-        + data.username;
-
-    feed.prepend(div);
-
-    // limiter à 40 lignes
-    if (feed.children.length > 40) {
-        feed.removeChild(feed.lastChild);
-    }
-
-});
+}
 
 // 🖼️ fond live
 socket.on("background", img => {
-
     document.body.style.backgroundImage = `url(${img})`;
-
 });
 
-// 🖼️ charger fond au démarrage
+// fond initial
 fetch("/background")
 .then(res => res.json())
 .then(data => {
-
     if (data.image) {
-
-        document.body.style.backgroundImage =
-            `url(${data.image})`;
-
+        document.body.style.backgroundImage = `url(${data.image})`;
     }
-
 });
 </script>
 
