@@ -19,41 +19,37 @@ let latestFollow = "Aucun";
 // 📜 historique
 let history = [];
 
-// 📌 events live
+// 📌 event live
 app.post("/event", (req, res) => {
 
     const { type, username } = req.body;
 
-    // sauvegarder derniers pseudos
-    if (type === "sub") {
-        latestSub = username;
-    }
+    if (type === "sub") latestSub = username;
+    if (type === "follow") latestFollow = username;
 
-    if (type === "follow") {
-        latestFollow = username;
-    }
+    history.unshift({ type, username });
 
-    // ajouter historique
-    history.unshift({
-        type,
-        username
-    });
+    if (history.length > 100) history.pop();
 
-    // max 40 lignes
-    if (history.length > 40) {
-        history.pop();
-    }
-
-    // envoyer aux clients
-    io.emit("event", {
-        type,
-        username
-    });
+    io.emit("event", { type, username });
+    io.emit("history", history);
 
     res.sendStatus(200);
 });
 
-// 🖼️ changer fond
+// ❌ suppression
+app.post("/delete", (req, res) => {
+
+    const { index } = req.body;
+
+    history.splice(index, 1);
+
+    io.emit("history", history);
+
+    res.sendStatus(200);
+});
+
+// 🖼️ fond upload
 app.post("/background", (req, res) => {
 
     const { image } = req.body;
@@ -65,36 +61,26 @@ app.post("/background", (req, res) => {
     res.sendStatus(200);
 });
 
-// 📤 envoyer fond
+// 📤 fond
 app.get("/background", (req, res) => {
-
-    res.json({
-        image: background
-    });
-
+    res.json({ image: background });
 });
 
-// 📤 envoyer derniers pseudos
+// 📤 derniers pseudos
 app.get("/latest", (req, res) => {
-
     res.json({
         sub: latestSub,
         follow: latestFollow
     });
-
 });
 
-// 📤 envoyer historique
+// 📤 historique
 app.get("/history", (req, res) => {
-
     res.json(history);
-
 });
 
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-
     console.log("Serveur OK : http://localhost:" + PORT);
-
 });
